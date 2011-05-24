@@ -1,0 +1,121 @@
+<!DOCTYPE html> 
+<html>
+<head> 
+    <title>Columbo</title>
+    <link rel="stylesheet" type="text/css" href="/__profiler__/static/style.css" media="screen">
+</head> 
+<body>
+    <div class="top">
+        <div class="content">
+            <!--<img src="/__profiler__/static/img/logo.png" class="logo" />-->
+            <h1>Columbo</h1>
+            <div class="boxes">
+
+                <div class="top_box box_rps box_running" id="box_rps">
+                    <div class="label">RPS</div>
+                    <div class="value" id="total_rps">0</div>
+                </div>
+                <div class="top_box box_fail box_running" id="box_fail">
+                    <div class="label">Failures</div>
+                    <div class="value"><span id="fail_ratio"></span>%</div>
+                </div>
+            </div>
+            <div style="clear: both;"></div>
+        </div>
+    </div>
+    <div class="main">
+        <div class="status" id="status">
+            <div style="clear: left;"></div>
+            <div class="panes">
+                <div style="display: block;">
+                    <table id="stats" class="stats">
+                        <thead>
+                            <tr>
+                                <th data-name="callcount" data-order="desc"># calls</th>
+                                <th data-name="inlinetime" data-order="desc">Total time</th>
+                                <th data-order="desc">Total time per call</th>
+                                <th data-name="totaltime" data-order="desc">Cumulative time</th>
+                                <th data-name="reccallcount" data-order="desc">Cumulative time per call</th>
+                                <th data-name="code" data-order="desc">Code</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 20px;">
+                        Download stats as <a href="/__profiler__/stats.json">JSON</a> | <a href="/__profiler__/stats.json">kCacheGrind</a>
+                    </div>
+                </div>
+                <div style="display:none;">
+                    <table id="errors" class="stats">
+                        <thead>
+                            <th class="error_count"># fails</th>
+                            <th class="error_type">Type</th>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="/__profiler__/static/jquery-1.4.min.js"></script>
+    <script type="text/javascript" src="/__profiler__/static/jquery.jqote2.min.js"></script>
+    <script type="text/javascript" src="/__profiler__/static/jquery.tools.min.js"></script>
+    <script type="text/javascript" src="/__profiler__/static/jquery.tablesorter.min.js"></script>
+    <script type="text/x-jqote-template" id="stats-template">
+        <![CDATA[
+        <tr class="<%=(alternate ? "dark" : "")%>">
+            <td><%= this.callcount %></td>
+            <td><%= (this.inlinetime).toFixed(2) %></td>
+            <td>N/A</td>
+            <td><%= (this.totaltime).toFixed(2) %></td>
+            <td><%= this.reccallcount %></td>
+            <td><%= this.code %></td>
+        </tr>
+        <% alternate = !alternate; %>
+        ]]>
+    </script>
+    <script type="text/javascript">
+        var alternate = false;
+        var stats_tpl = $('#stats-template');
+        var selectedSortAttr = 'callcount';
+        var selectedSortOrder = true;
+        var limit = 500;
+
+        $('#stats th').click(function (e) {
+            selectedSortAttr = $(this).attr('data-name');
+            selectedSortOrder = !selectedSortOrder;
+            globalStats = sortRenderStats(globalStats);
+        });
+
+        function sortAttribute(name, order) {
+            if (order === true)
+                return function (a, b) { return b[name] - a[name]; };
+
+            return function (a, b) { return a[name] - b[name]; };
+        }
+
+        function updateStats() {
+            $.get('/__profiler__/stats.json', function (data) {
+                var stats = JSON.parse(data).stats;
+                sortRenderStats(stats);
+                globalStats = stats;
+                setTimeout(updateStats, 2000);
+            });
+        }
+
+        function sortRenderStats(stats) {
+            stats = stats.sort(sortAttribute(selectedSortAttr, selectedSortOrder));
+            $('#stats tbody').empty();
+            alternate = false;
+            $('#stats tbody').jqoteapp(stats_tpl, stats.slice(0, limit));
+            return stats;
+        }
+
+        updateStats();
+
+    </script>
+</body>
+</html> 
